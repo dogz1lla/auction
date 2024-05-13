@@ -14,6 +14,7 @@ import (
 type Client struct {
 	id   string
 	hub  *Hub
+	room *AuctionRoom
 	conn *websocket.Conn
 	send chan []byte
 }
@@ -30,18 +31,24 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func ServerWs(hub *Hub, c echo.Context) {
+func ServerWs(hub *Hub, roomManager *RoomManager, c echo.Context, userName, roomId string) {
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	id := uuid.New()
+	room, err := roomManager.getRoomById(roomId)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
+	id := uuid.New()
 	client := &Client{
 		id:   id.String(),
 		hub:  hub,
+		room: room,
 		conn: conn,
 		send: make(chan []byte),
 	}
@@ -81,7 +88,7 @@ func (c *Client) ReadLoop() {
 		if err := decoder.Decode(msg); err != nil {
 			log.Printf("Json decoding error: %v\n", err)
 		}
-		c.hub.broadcast <- &Message{ClientID: c.id, Bid: msg.Bid}
+		c.hub.broadcast <- &Message{WsClient: c, Bid: msg.Bid}
 	}
 }
 
