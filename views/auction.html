@@ -1,0 +1,73 @@
+{{ block "auction-page" . }}
+<!DOCTYPE html>
+<html lang="end">
+    <head>
+        <title>
+            Home page
+        </title>
+        <script src="https://unpkg.com/htmx.org/dist/htmx.min.js"></script>
+        <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", (event) => {
+                document.body.addEventListener('htmx:beforeSwap', function(evt){
+                    if (
+                           evt.detail.xhr.status === 422 ||
+                           evt.detail.xhr.status === 401 ||
+                           evt.detail.xhr.status === 404
+                       ) {
+                        evt.detail.shouldSwap = true;
+                        evt.detail.isError = false;
+                    }
+                });
+            })
+        </script>
+
+        <!-- <script> -->
+        <!--     var loc = window.location; -->
+        <!--     var wsUri = "ws://" + loc.host + "/ws" -->
+        <!---->
+        <!--     ws = new WebSocket(wsUri) -->
+        <!--     ws.onopen = function() { -->
+        <!--         console.log("Connected to ws at " + wsUri) -->
+        <!--     } -->
+        <!---->
+        <!--     ws.onmessage = function(evt) { -->
+        <!--         console.log("msg received: " + evt.data) -->
+        <!--     } -->
+        <!-- </script> -->
+    </head>
+
+    <body>
+        {{ template "auction-page-body" . }}
+    </body>
+</html>
+{{ end }}
+
+{{ block "auction-page-body" . }}
+<div class="bg-slate-300">
+    {{ template "auction-state" . }}
+    <div hx-ext="ws" ws-connect="/ws?userName=kek">
+        {{ template "bid-form" . }}
+    </div>
+</div>
+{{ end }}
+
+{{ block "auction-state" . }}
+    <div id="auction-state">
+    Current highest bidder: {{ .CurrentBidder }}, current bid: <span style="color: red">{{ .CurrentBid }}</span>
+    </div>
+{{ end }}
+
+{{ block "bid-form" . }}
+<form ws-send>
+    your bid: <input
+    class="border border-[#282a36]"
+    type="number"
+    name="bid">
+    <input type="hidden" name="bidderId" value="kek_todo">
+    <button
+        class="bg-gray-300 border-2 border-teal-600 text-gray-900"
+        type="submit">Place bid!</button>
+</form>
+{{ end }}
