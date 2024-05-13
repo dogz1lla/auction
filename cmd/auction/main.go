@@ -35,10 +35,14 @@ func main() {
 	// mockHomePage := templating.MockHomePage()
 	mockLoginPage := templating.NewLoginPage()
 	var allUsers users.Users
+	// TODO make an actual templated page and not just auction room struct
 	mockAuctionPage := room.NewAuctionRoom()
 
 	hub := room.NewHub()
 	go hub.Run()
+
+	roomManager := room.NewRoomManager()
+	go roomManager.Run()
 
 	// e.GET("/home", func(c echo.Context) error {
 	// 	return c.Render(http.StatusOK, "home-page", mockHomePage)
@@ -73,13 +77,11 @@ func main() {
 	})
 
 	e.GET("/ws", func(c echo.Context) error {
-		c.Logger().Print("Ws connection request")
+		// c.Logger().Print("Ws connection request")
 		userName := c.QueryParam("userName")
-		if userName == "" {
-			userName = "test user"
-		}
+		roomId := c.QueryParam("roomId")
 
-		room.ServerWs(hub, c)
+		room.ServerWs(hub, roomManager, c, userName, roomId)
 		return nil
 	})
 

@@ -47,7 +47,7 @@
 {{ block "auction-page-body" . }}
 <div class="bg-slate-300">
     {{ template "auction-state" . }}
-    <div hx-ext="ws" ws-connect="/ws?userName=kek">
+    <div hx-ext="ws" ws-connect="/ws?userName=kek&roomId=lul">
         {{ template "bid-form" . }}
     </div>
 </div>

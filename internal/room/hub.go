@@ -1,14 +1,9 @@
 package room
 
-import (
-	"bytes"
-	"log"
-
-	"github.com/dogz1lla/auction/internal/templating"
-)
+import "log"
 
 type Message struct {
-	ClientID string
+	WsClient *Client
 	Bid      float64
 }
 
@@ -37,9 +32,6 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) Run() {
-	// TODO add a room management logic
-	mockRoom := NewAuctionRoom()
-
 	for {
 		select {
 		case client := <-h.register:
@@ -57,12 +49,12 @@ func (h *Hub) Run() {
 			// ...
 			// update the room state
 			// TODO need to choose the correct room
-			mockRoom.ProcessBid(msg.ClientID, msg)
+			msg.WsClient.room.ProcessBid(msg.WsClient.id, msg)
 
 			// broadcast the new state
 			for client := range h.clients {
 				select {
-				case client.send <- RenderAuctionState(mockRoom):
+				case client.send <- msg.WsClient.room.RenderState():
 				default:
 					close(client.send)
 					delete(h.clients, client)
@@ -70,16 +62,4 @@ func (h *Hub) Run() {
 			}
 		}
 	}
-}
-
-func RenderAuctionState(ar *AuctionRoom) []byte {
-	tmpl := templating.NewTemplate()
-
-	var renderedMsg bytes.Buffer
-	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "auction-state", ar)
-	if err != nil {
-		log.Fatalf("template parsing: %s", err)
-	}
-
-	return renderedMsg.Bytes()
 }
