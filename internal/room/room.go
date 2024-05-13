@@ -19,6 +19,7 @@ import (
 	"log"
 
 	"github.com/dogz1lla/auction/internal/templating"
+	"github.com/dogz1lla/auction/internal/users"
 	"github.com/google/uuid"
 )
 
@@ -28,7 +29,7 @@ import (
 // }
 
 type AuctionRoom struct {
-	id            string
+	Id            string
 	CurrentBidder string
 	CurrentBid    float64
 	// this will help render the countdown both in user's list and in the auction view
@@ -38,7 +39,17 @@ type AuctionRoom struct {
 func NewAuctionRoom() *AuctionRoom {
 	id := uuid.New()
 	return &AuctionRoom{
-		id:            id.String(),
+		Id:            id.String(),
+		CurrentBidder: "none",
+		CurrentBid:    0.0,
+		closesAt:      0,
+	}
+}
+
+func NewMockAuctionRoom() *AuctionRoom {
+	// TODO delete
+	return &AuctionRoom{
+		Id:            "lul",
 		CurrentBidder: "none",
 		CurrentBid:    0.0,
 		closesAt:      0,
@@ -103,12 +114,12 @@ func (rm *RoomManager) Run() {
 		select {
 		case auctionRoom := <-rm.register:
 			// NOTE maps in go are not concurrent so use the lock (mentioned at 24:15 in the video)
-			rm.rooms[auctionRoom.id] = auctionRoom
-			log.Printf("room registered: %s\n", auctionRoom.id)
+			rm.rooms[auctionRoom.Id] = auctionRoom
+			log.Printf("room registered: %s\n", auctionRoom.Id)
 		case auctionRoom := <-rm.unregister:
-			if _, ok := rm.rooms[auctionRoom.id]; ok {
-				delete(rm.rooms, auctionRoom.id)
-				log.Printf("room unregistered: %s\n", auctionRoom.id)
+			if _, ok := rm.rooms[auctionRoom.Id]; ok {
+				delete(rm.rooms, auctionRoom.Id)
+				log.Printf("room unregistered: %s\n", auctionRoom.Id)
 			}
 		}
 	}
@@ -119,4 +130,17 @@ func (rm *RoomManager) getRoomById(roomId string) (*AuctionRoom, error) {
 		return room, nil
 	}
 	return nil, errors.New(fmt.Sprintf("Auction room %s not found", roomId))
+}
+
+// have to put it here instead of templating because of circular imports
+type AuctionPage struct {
+	User *users.User
+	Room *AuctionRoom
+}
+
+func NewMockAuctionPage() *AuctionPage {
+	return &AuctionPage{
+		User: users.NewUser("MOCK USER"),
+		Room: NewMockAuctionRoom(),
+	}
 }

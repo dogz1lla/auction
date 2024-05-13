@@ -46,8 +46,8 @@
 
 {{ block "auction-page-body" . }}
 <div class="bg-slate-300">
-    {{ template "auction-state" . }}
-    <div hx-ext="ws" ws-connect="/ws?userName=kek&roomId=lul">
+    {{ template "auction-state" .Room }}
+    <div hx-ext="ws" ws-connect="/ws?userName={{ .User.Name }}&roomId={{ .Room.Id }}">
         {{ template "bid-form" . }}
     </div>
 </div>
@@ -65,7 +65,7 @@
     class="border border-[#282a36]"
     type="number"
     name="bid">
-    <input type="hidden" name="bidderId" value="kek_todo">
+    <!-- <input type="hidden" name="bidderId" value="kek_todo"> -->
     <button
         class="bg-gray-300 border-2 border-teal-600 text-gray-900"
         type="submit">Place bid!</button>
