@@ -36,7 +36,7 @@ func main() {
 	mockLoginPage := templating.NewLoginPage()
 	var allUsers users.Users
 	// TODO make an actual templated page and not just auction room struct
-	mockAuctionPage := room.NewAuctionRoom()
+	mockAuctionPage := room.NewMockAuctionPage()
 
 	hub := room.NewHub()
 	go hub.Run()
