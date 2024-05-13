@@ -1,0 +1,50 @@
+{{ block "home-page" . }}
+<!DOCTYPE html>
+<html lang="end">
+    <head>
+        <title>
+            Home page
+        </title>
+        <script src="https://unpkg.com/htmx.org/dist/htmx.min.js"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", (event) => {
+                document.body.addEventListener('htmx:beforeSwap', function(evt){
+                    if (
+                           evt.detail.xhr.status === 422 ||
+                           evt.detail.xhr.status === 401 ||
+                           evt.detail.xhr.status === 404
+                       ) {
+                        evt.detail.shouldSwap = true;
+                        evt.detail.isError = false;
+                    }
+                });
+            })
+        </script>
+    </head>
+
+    <body>
+        {{ template "home-page-body" . }}
+    </body>
+</html>
+{{ end }}
+
+{{ block "home-page-body" . }}
+    <div>
+        Greetings, Test user. Here are the currently running auctions:
+        <div> {{ template "home-page-auctions" .Auctions }}</div>
+    </div>
+{{ end }}
+
+{{ block "home-page-auctions" . }}
+    <div>
+    {{ range $auction := . }}
+        {{ template "auction-entry" $auction }}
+    {{ end }}
+    </div>
+{{ end }}
+
+{{ block "auction-entry" . }}
+    <div>
+        Auction {{ .Id }}: current bid = {{ .CurrentBid }}
+    </div>
+{{ end }}
