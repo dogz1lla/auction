@@ -2,12 +2,14 @@
 TODO
   - [x] i should see a list of currently running auctions on the user's home page;
   - [x] use htmx ws to replace the auction info element through the websocket (just use the id);
-  - [ ] each auction needs to have a "auction room" view, this view needs to have a websocket and a
+  - [x] each auction needs to have a "auction room" view, this view needs to have a websocket and a
     websocket manager associated with it;
   - [ ] each item on the list should have a button that allows the user to join the auction "room",
     this will connect the user to the websocket;
   - [x] websockets should be able to receive the bid messages; connection msg should contain the
     user's name;
+
+Next: add expiration to the rooms; when room expires no new bids are allowed;
 */
 package main
 
@@ -36,7 +38,6 @@ func main() {
 	mockLoginPage := templating.NewLoginPage()
 	var allUsers users.Users
 	// TODO make an actual templated page and not just auction room struct
-	mockAuctionPage := room.NewMockAuctionPage()
 
 	hub := room.NewHub()
 	go hub.Run()
@@ -73,6 +74,7 @@ func main() {
 
 	// next two endpoints work in tandem
 	e.GET("/auction", func(c echo.Context) error {
+		mockAuctionPage := room.NewMockAuctionPage(roomManager)
 		return c.Render(http.StatusOK, "auction-page", mockAuctionPage)
 	})
 

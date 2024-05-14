@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/dogz1lla/auction/internal/templating"
 	"github.com/dogz1lla/auction/internal/users"
@@ -33,7 +34,7 @@ type AuctionRoom struct {
 	CurrentBidder string
 	CurrentBid    float64
 	// this will help render the countdown both in user's list and in the auction view
-	closesAt int64
+	closesAt time.Time
 }
 
 func NewAuctionRoom() *AuctionRoom {
@@ -42,7 +43,7 @@ func NewAuctionRoom() *AuctionRoom {
 		Id:            id.String(),
 		CurrentBidder: "none",
 		CurrentBid:    0.0,
-		closesAt:      0,
+		// closesAt:      0,
 	}
 }
 
@@ -52,7 +53,7 @@ func NewMockAuctionRoom() *AuctionRoom {
 		Id:            "lul",
 		CurrentBidder: "none",
 		CurrentBid:    0.0,
-		closesAt:      0,
+		closesAt:      time.Now().UTC().Add(10 * time.Minute),
 	}
 }
 
@@ -101,7 +102,7 @@ type RoomManager struct {
 func NewRoomManager() *RoomManager {
 	// TODO fix
 	testRooms := make(map[string]*AuctionRoom)
-	testRooms["lul"] = NewAuctionRoom()
+	testRooms["lul"] = NewMockAuctionRoom()
 	return &RoomManager{
 		rooms:      testRooms,
 		register:   make(chan *AuctionRoom),
@@ -134,13 +135,16 @@ func (rm *RoomManager) getRoomById(roomId string) (*AuctionRoom, error) {
 
 // have to put it here instead of templating because of circular imports
 type AuctionPage struct {
-	User *users.User
-	Room *AuctionRoom
+	User       *users.User
+	Room       *AuctionRoom
+	Expiration int64
 }
 
-func NewMockAuctionPage() *AuctionPage {
+func NewMockAuctionPage(rm *RoomManager) *AuctionPage {
+	mockRoom := rm.rooms["lul"]
 	return &AuctionPage{
-		User: users.NewUser("MOCK USER"),
-		Room: NewMockAuctionRoom(),
+		User:       users.NewUser("MOCK USER"),
+		Room:       mockRoom,
+		Expiration: GetMillisTill(mockRoom.closesAt),
 	}
 }
