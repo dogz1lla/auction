@@ -38,7 +38,7 @@ func ServerWs(hub *Hub, roomManager *RoomManager, c echo.Context, userName, room
 		return
 	}
 
-	room, err := roomManager.getRoomById(roomId)
+	room, err := roomManager.GetRoomById(roomId)
 	if err != nil {
 		log.Println(err)
 		return

@@ -34,7 +34,7 @@ type AuctionRoom struct {
 	CurrentBidder string
 	CurrentBid    float64
 	// this will help render the countdown both in user's list and in the auction view
-	closesAt time.Time
+	ClosesAt time.Time
 }
 
 func NewAuctionRoom() *AuctionRoom {
@@ -43,7 +43,7 @@ func NewAuctionRoom() *AuctionRoom {
 		Id:            id.String(),
 		CurrentBidder: "none",
 		CurrentBid:    0.0,
-		// closesAt:      0,
+		// ClosesAt:      0,
 	}
 }
 
@@ -53,15 +53,15 @@ func NewMockAuctionRoom() *AuctionRoom {
 		Id:            "lul",
 		CurrentBidder: "none",
 		CurrentBid:    0.0,
-		closesAt:      time.Now().UTC().Add(10 * time.Minute),
+		ClosesAt:      time.Now().UTC().Add(10 * time.Minute),
 	}
 }
 
-func onBid() error {
-	return nil
-}
-
 func (ar *AuctionRoom) ProcessBid(userName string, msg *Message) error {
+	if time.Now().UTC().After(ar.ClosesAt) {
+		log.Printf("Room %s has expired! No new bids allowed\n", ar.Id)
+		return nil
+	}
 	bid := msg.Bid
 	if bid > ar.CurrentBid {
 		ar.CurrentBid = bid
@@ -93,7 +93,7 @@ func (ar *AuctionRoom) RenderState() []byte {
 // the room id could be extracted from the list of the auctions on the user's home page;
 // i can send the room id to the /ws endpoint and thus make it a part of the Client struct
 type RoomManager struct {
-	rooms map[string]*AuctionRoom
+	Rooms map[string]*AuctionRoom
 
 	register   chan *AuctionRoom
 	unregister chan *AuctionRoom
@@ -104,7 +104,7 @@ func NewRoomManager() *RoomManager {
 	testRooms := make(map[string]*AuctionRoom)
 	testRooms["lul"] = NewMockAuctionRoom()
 	return &RoomManager{
-		rooms:      testRooms,
+		Rooms:      testRooms,
 		register:   make(chan *AuctionRoom),
 		unregister: make(chan *AuctionRoom),
 	}
@@ -115,22 +115,28 @@ func (rm *RoomManager) Run() {
 		select {
 		case auctionRoom := <-rm.register:
 			// NOTE maps in go are not concurrent so use the lock (mentioned at 24:15 in the video)
-			rm.rooms[auctionRoom.Id] = auctionRoom
+			rm.Rooms[auctionRoom.Id] = auctionRoom
 			log.Printf("room registered: %s\n", auctionRoom.Id)
 		case auctionRoom := <-rm.unregister:
-			if _, ok := rm.rooms[auctionRoom.Id]; ok {
-				delete(rm.rooms, auctionRoom.Id)
+			if _, ok := rm.Rooms[auctionRoom.Id]; ok {
+				delete(rm.Rooms, auctionRoom.Id)
 				log.Printf("room unregistered: %s\n", auctionRoom.Id)
 			}
 		}
 	}
 }
 
-func (rm *RoomManager) getRoomById(roomId string) (*AuctionRoom, error) {
-	if room, ok := rm.rooms[roomId]; ok {
+func (rm *RoomManager) GetRoomById(roomId string) (*AuctionRoom, error) {
+	if room, ok := rm.Rooms[roomId]; ok {
 		return room, nil
 	}
 	return nil, errors.New(fmt.Sprintf("Auction room %s not found", roomId))
+}
+
+func (rm *RoomManager) CreateAuction(closesAt time.Time) {
+	newAuctionRoom := NewAuctionRoom()
+	newAuctionRoom.ClosesAt = closesAt
+	rm.Rooms[newAuctionRoom.Id] = newAuctionRoom
 }
 
 // have to put it here instead of templating because of circular imports
@@ -140,11 +146,18 @@ type AuctionPage struct {
 	Expiration int64
 }
 
+func NewAuctionPage(ar *AuctionRoom) *AuctionPage {
+	return &AuctionPage{
+		User:       users.NewUser("MOCK USER"),
+		Room:       ar,
+		Expiration: GetMillisTill(ar.ClosesAt),
+	}
+}
 func NewMockAuctionPage(rm *RoomManager) *AuctionPage {
-	mockRoom := rm.rooms["lul"]
+	mockRoom := rm.Rooms["lul"]
 	return &AuctionPage{
 		User:       users.NewUser("MOCK USER"),
 		Room:       mockRoom,
-		Expiration: GetMillisTill(mockRoom.closesAt),
+		Expiration: GetMillisTill(mockRoom.ClosesAt),
 	}
 }
