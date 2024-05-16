@@ -4,17 +4,24 @@ TODO
   - [x] use htmx ws to replace the auction info element through the websocket (just use the id);
   - [x] each auction needs to have a "auction room" view, this view needs to have a websocket and a
     websocket manager associated with it;
-  - [ ] each item on the list should have a button that allows the user to join the auction "room",
+  - [x] each item on the list should have a button that allows the user to join the auction "room",
     this will connect the user to the websocket;
   - [x] websockets should be able to receive the bid messages; connection msg should contain the
     user's name;
+  - [x] add expiration to the rooms; when room expires no new bids are allowed;
+  - [ ] create a border around the 'create auction' element on the admin page;
+  - [ ] make the list of auctions an html table;
+  - [ ] upon going to the /home or /admin page create a websocket connection that updates the table
+    when there are new highest bidders or the auction ends (expires);
 
-Next: add expiration to the rooms; when room expires no new bids are allowed;
+Next:
 */
 package main
 
 import (
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -27,6 +34,10 @@ import (
 
 var (
 	upgrader = websocket.Upgrader{}
+)
+
+const (
+	timefmt = "2006-01-02T15:04"
 )
 
 func main() {
@@ -60,6 +71,25 @@ func main() {
 	// 	return c.Render(http.StatusOK, "home-page", mockHomePage)
 	// })
 
+	e.GET("/admin", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "admin-page", roomManager)
+	})
+
+	e.GET("/home", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "home-page", roomManager)
+	})
+
+	e.POST("/create_auction", func(c echo.Context) error {
+		closesAtStr := c.FormValue("ClosesAt")
+		c.Logger().Printf("GOT TIME STR: %s", closesAtStr)
+		closesAt, err := time.Parse(timefmt, closesAtStr)
+		if err != nil {
+			log.Printf("time parsing error: fmt=%s, to parse=%s, err: %s", timefmt, closesAtStr, err.Error())
+		}
+		roomManager.CreateAuction(closesAt)
+		return c.NoContent(http.StatusOK)
+	})
+
 	e.GET("/login", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "login-page", mockLoginPage)
 	})
@@ -68,14 +98,25 @@ func main() {
 		userName := c.FormValue("login")
 		user := users.NewUser(userName)
 		allUsers = append(allUsers, user)
-		c.Response().Header().Set("HX-Redirect", "/home")
+		if userName == "admin" {
+			c.Response().Header().Set("HX-Redirect", "/admin")
+		} else {
+			c.Response().Header().Set("HX-Redirect", "/home")
+		}
 		return c.NoContent(http.StatusOK)
 	})
 
 	// next two endpoints work in tandem
 	e.GET("/auction", func(c echo.Context) error {
-		mockAuctionPage := room.NewMockAuctionPage(roomManager)
-		return c.Render(http.StatusOK, "auction-page", mockAuctionPage)
+		roomId := c.QueryParam("id")
+		auctionRoom, err := roomManager.GetRoomById(roomId)
+		log.Println(auctionRoom)
+		if err != nil {
+			c.Logger().Errorf("Room not found: %s", roomId)
+			return nil
+		}
+		auctionPage := room.NewAuctionPage(auctionRoom)
+		return c.Render(http.StatusOK, "auction-page", auctionPage)
 	})
 
 	e.GET("/ws", func(c echo.Context) error {

@@ -1,4 +1,4 @@
-{{ block "home-page" . }}
+{{ block "admin-page" . }}
 <!DOCTYPE html>
 <html lang="end">
     <head>
@@ -23,28 +23,36 @@
     </head>
 
     <body>
-        {{ template "home-page-body" . }}
+        {{ template "admin-page-body" . }}
     </body>
 </html>
 {{ end }}
 
-{{ block "home-page-body" . }}
+{{ block "admin-page-body" . }}
     <div>
-        Greetings, Test user. Here are the currently running auctions:
-        <div> {{ template "home-page-auctions" .Rooms }}</div>
+        Greetings, <span style="color: red">Admin</span>. Here are the currently running auctions:
+        <div> {{ template "admin-page-auctions" .Rooms }}</div>
     </div>
+    {{ template "add-auction-form" . }}
 {{ end }}
 
-{{ block "home-page-auctions" . }}
+{{ block "admin-page-auctions" . }}
     <div>
     {{ range $auction := . }}
-        {{ template "auction-entry" $auction }}
+        {{ template "admin-auction-entry" $auction }}
     {{ end }}
     </div>
 {{ end }}
 
-{{ block "auction-entry" . }}
+{{ block "admin-auction-entry" . }}
     <div>
-        Auction {{ .Id }}: current bid = {{ .CurrentBid }}
+        Auction {{ .Id }}: current bid = {{ .CurrentBid }} <a href="/auction?id={{ .Id }}">Join</a>
     </div>
+{{ end }}
+
+{{ block "add-auction-form" . }}
+<form hx-swap="outerHTML" hx-post="/create_auction">
+    expires <input type="datetime-local" name="ClosesAt">
+    <button type="submit">Create</button>
+</form>
 {{ end }}
