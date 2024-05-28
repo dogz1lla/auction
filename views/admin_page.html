@@ -33,7 +33,9 @@
         Greetings, <span style="color: red">Admin</span>. Here are the currently running auctions:
         <div> {{ template "admin-page-auctions" .Rooms }}</div>
     </div>
-    {{ template "add-auction-form" . }}
+    <div style="border: 2px solid; border-radius: 3px">
+        {{ template "add-auction-form" . }}
+    </div>
 {{ end }}
 
 {{ block "admin-page-auctions" . }}
