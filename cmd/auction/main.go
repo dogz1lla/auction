@@ -9,7 +9,7 @@ TODO
   - [x] websockets should be able to receive the bid messages; connection msg should contain the
     user's name;
   - [x] add expiration to the rooms; when room expires no new bids are allowed;
-  - [ ] create a border around the 'create auction' element on the admin page;
+  - [x] create a border around the 'create auction' element on the admin page;
   - [ ] make the list of auctions an html table;
   - [ ] upon going to the /home or /admin page create a websocket connection that updates the table
     when there are new highest bidders or the auction ends (expires);
