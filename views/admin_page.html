@@ -40,15 +40,26 @@
 
 {{ block "admin-page-auctions" . }}
     <div>
-    {{ range $auction := . }}
-        {{ template "admin-auction-entry" $auction }}
-    {{ end }}
+        <table style="border: 1px solid">
+        <tr>
+            <th>Auction id</th>
+            <th>Current bid</th>
+            <th>Join?</th>
+        </tr>
+        {{ range $auction := . }}
+            {{ template "admin-auction-entry" $auction }}
+        {{ end }}
+        </table>
     </div>
 {{ end }}
 
 {{ block "admin-auction-entry" . }}
     <div>
-        Auction {{ .Id }}: current bid = {{ .CurrentBid }} <a href="/auction?id={{ .Id }}">Join</a>
+    <tr>
+        <td>{{ .Id }}</td>
+        <td>{{ .CurrentBid }}</td>
+        <td><a href="/auction?id={{ .Id }}">Join</a></td>
+    </tr>
     </div>
 {{ end }}
 
