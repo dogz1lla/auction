@@ -6,6 +6,7 @@
             Home page
         </title>
         <script src="https://unpkg.com/htmx.org/dist/htmx.min.js"></script>
+        <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
         <script>
             document.addEventListener("DOMContentLoaded", (event) => {
                 document.body.addEventListener('htmx:beforeSwap', function(evt){
@@ -30,21 +31,44 @@
 
 {{ block "home-page-body" . }}
     <div>
-        Greetings, Test user. Here are the currently running auctions:
-        <div> {{ template "home-page-auctions" .Rooms }}</div>
+        Greetings, <span style="color: red">TODO</span>. Here are the currently running auctions:
+    <div hx-ext="ws" ws-connect="/ws_room_updates">
+        {{ template "home-page-auctions" .Rm.Rooms }}
     </div>
+    </div>
+    {{ if .IsAdmin }}
+    <div style="border: 2px solid; border-radius: 3px">
+        {{ template "add-auction-form" . }}
+    </div>
+    {{ end }}
 {{ end }}
 
 {{ block "home-page-auctions" . }}
-    <div>
-    {{ range $auction := . }}
-        {{ template "auction-entry" $auction }}
-    {{ end }}
+    <div id="auction list">
+        <table style="border: 1px solid">
+        <tr>
+            <th>Auction id</th>
+            <th>Current bid</th>
+            <th>Join?</th>
+        </tr>
+        {{ range $auction := . }}
+            {{ template "home-auction-entry" $auction }}
+        {{ end }}
+        </table>
     </div>
 {{ end }}
 
-{{ block "auction-entry" . }}
-    <div>
-        Auction {{ .Id }}: current bid = {{ .CurrentBid }}
-    </div>
+{{ block "home-auction-entry" . }}
+    <tr id="auction-entry-{{ .Id }}">
+        <td>{{ .Id }}</td>
+        <td>{{ .CurrentBid }}</td>
+        <td><a href="/auction?id={{ .Id }}">Join</a></td>
+    </tr>
+{{ end }}
+
+{{ block "add-auction-form" . }}
+<form hx-swap="outerHTML" hx-post="/create_auction">
+    expires <input type="datetime-local" name="ClosesAt">
+    <button type="submit">Create</button>
+</form>
 {{ end }}

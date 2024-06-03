@@ -50,12 +50,14 @@ func main() {
 	var allUsers users.Users
 	// TODO make an actual templated page and not just auction room struct
 
-	hub := room.NewHub()
+	roomUpdatesHub := room.NewRoomUpdatesHub()
+	go roomUpdatesHub.Run()
+
+	hub := room.NewHub(roomUpdatesHub)
 	go hub.Run()
 
 	roomManager := room.NewRoomManager()
 	go roomManager.Run()
-
 	// e.GET("/home", func(c echo.Context) error {
 	// 	return c.Render(http.StatusOK, "home-page", mockHomePage)
 	// })
@@ -71,14 +73,25 @@ func main() {
 	// 	return c.Render(http.StatusOK, "home-page", mockHomePage)
 	// })
 
+	// next two (three) endpoints work in tandem
 	e.GET("/admin", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "admin-page", roomManager)
+		homePage := room.NewHomePage(true, roomManager)
+		//return c.Render(http.StatusOK, "admin-page", roomManager)
+		return c.Render(http.StatusOK, "home-page", homePage)
 	})
 
 	e.GET("/home", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "home-page", roomManager)
+		homePage := room.NewHomePage(false, roomManager)
+		return c.Render(http.StatusOK, "home-page", homePage)
 	})
 
+	e.GET("/ws_room_updates", func(c echo.Context) error {
+		// c.Logger().Print("Ws connection request")
+		room.ServerRoomUpdatesWs(roomUpdatesHub, c)
+		return nil
+	})
+
+	//
 	e.POST("/create_auction", func(c echo.Context) error {
 		closesAtStr := c.FormValue("ClosesAt")
 		c.Logger().Printf("GOT TIME STR: %s", closesAtStr)
@@ -98,7 +111,9 @@ func main() {
 		userName := c.FormValue("login")
 		user := users.NewUser(userName)
 		allUsers = append(allUsers, user)
-		if userName == "admin" {
+		// TODO: implement a proper auth
+		isAdmin := userName == "admin"
+		if isAdmin {
 			c.Response().Header().Set("HX-Redirect", "/admin")
 		} else {
 			c.Response().Header().Set("HX-Redirect", "/home")

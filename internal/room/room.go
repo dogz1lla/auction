@@ -9,6 +9,9 @@ Auction room must be able to exist whether there is even a single client in it o
 room manager
 TODO
 - [ ] ;
+
+Need to add logic that can notify users about changes in the auction room state and whether there
+are new auctions rooms or if any of the existing ones are expired;
 */
 package room
 
@@ -79,6 +82,19 @@ func (ar *AuctionRoom) RenderState() []byte {
 
 	var renderedMsg bytes.Buffer
 	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "auction-state", ar)
+	if err != nil {
+		log.Fatalf("Template parsing error: %s", err)
+	}
+
+	return renderedMsg.Bytes()
+}
+
+func (ar *AuctionRoom) RenderRoomListEntry() []byte {
+	tmpl := templating.NewTemplate()
+
+	var renderedMsg bytes.Buffer
+	// DONE: fix the div id naming
+	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "home-auction-entry", ar)
 	if err != nil {
 		log.Fatalf("Template parsing error: %s", err)
 	}
@@ -160,4 +176,14 @@ func NewMockAuctionPage(rm *RoomManager) *AuctionPage {
 		Room:       mockRoom,
 		Expiration: GetMillisTill(mockRoom.ClosesAt),
 	}
+}
+
+// NOTE: again, need to define this here instead of in templating due to the circular imports
+type HomePage struct {
+	IsAdmin bool
+	Rm      *RoomManager
+}
+
+func NewHomePage(isAdmin bool, rm *RoomManager) HomePage {
+	return HomePage{IsAdmin: isAdmin, Rm: rm}
 }

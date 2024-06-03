@@ -44,9 +44,9 @@ func ServerWs(hub *Hub, roomManager *RoomManager, c echo.Context, userName, room
 		return
 	}
 
-	id := uuid.New()
+	id := uuid.New().String()
 	client := &Client{
-		id:   id.String(),
+		id:   id,
 		hub:  hub,
 		room: room,
 		conn: conn,
