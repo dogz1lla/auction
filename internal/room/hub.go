@@ -17,17 +17,19 @@ type WSMessage struct {
 type Hub struct {
 	clients map[*Client]bool
 
-	broadcast  chan *Message
-	register   chan *Client
-	unregister chan *Client
+	roomUpdatesHub *RoomUpdatesHub
+	broadcast      chan *Message
+	register       chan *Client
+	unregister     chan *Client
 }
 
-func NewHub() *Hub {
+func NewHub(ruh *RoomUpdatesHub) *Hub {
 	return &Hub{
-		clients:    make(map[*Client]bool),
-		broadcast:  make(chan *Message),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		clients:        make(map[*Client]bool),
+		roomUpdatesHub: ruh,
+		broadcast:      make(chan *Message),
+		register:       make(chan *Client),
+		unregister:     make(chan *Client),
 	}
 }
 
@@ -48,8 +50,10 @@ func (h *Hub) Run() {
 			// log messages in the hub if necessary...
 			// ...
 			// update the room state
-			// TODO need to choose the correct room
+			// TODO: need to choose the correct room
 			msg.WsClient.room.ProcessBid(msg.WsClient.id, msg)
+			// have the updated room here -> TODO: send it to everyone in their /home
+			h.roomUpdatesHub.broadcast <- msg.WsClient.room
 
 			// broadcast the new state
 			for client := range h.clients {
