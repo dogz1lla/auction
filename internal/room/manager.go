@@ -1,6 +1,8 @@
 package room
 
 import (
+	"bytes"
+	"encoding/json"
 	"log"
 	"time"
 
@@ -9,16 +11,20 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const (
+	timefmt = "2006-01-02T15:04"
+)
+
 type RoomUpdatesMessage struct {
 	WsClient *RoomUpdatesClient
-	Bid      float64
+	ClosesAt time.Time
 }
 
 type WSRoomUpdatesMessage struct {
 	Headers interface{} `json:"HEADERS"`
 	// TODO map uids into user names
 	//BidderId string      `json:"bidderId"`
-	Bid float64 `json:"bid,string"`
+	ClosesAt string `json:"ClosesAt"`
 }
 
 type RoomUpdatesClient struct {
@@ -28,7 +34,7 @@ type RoomUpdatesClient struct {
 	send chan []byte
 }
 
-func ServerRoomUpdatesWs(hub *RoomUpdatesHub, c echo.Context) {
+func ServerRoomUpdatesWs(hub *RoomUpdatesHub, roomManager *RoomManager, c echo.Context) {
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		log.Println(err)
@@ -46,10 +52,10 @@ func ServerRoomUpdatesWs(hub *RoomUpdatesHub, c echo.Context) {
 	client.hub.register <- client
 
 	go client.WriteLoop()
-	go client.ReadLoop()
+	go client.ReadLoop(roomManager)
 }
 
-func (c *RoomUpdatesClient) ReadLoop() {
+func (c *RoomUpdatesClient) ReadLoop(roomManager *RoomManager) {
 	defer func() {
 		c.conn.Close()
 		c.hub.unregister <- c
@@ -63,13 +69,34 @@ func (c *RoomUpdatesClient) ReadLoop() {
 	})
 
 	for {
-		_, _, err := c.conn.ReadMessage()
+		_, text, err := c.conn.ReadMessage()
 		// log.Printf("new ws msg %v\n", string(text))
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("Unexpected ws close error: %v\n", err)
 			}
 			break
+		}
+
+		// NOTE: if there is another functionality in the future that is delivered from client
+		// (like eg force closing an auction prematurely) then need to add other fields to the
+		// WSRoomUpdatesMessage and then check which fields are not nil to determine which type of
+		// message it is
+		msg := &WSRoomUpdatesMessage{}
+		reader := bytes.NewReader(text)
+		decoder := json.NewDecoder(reader)
+		if err := decoder.Decode(msg); err != nil {
+			log.Printf("Json decoding error: %v\n", err)
+		}
+
+		log.Printf("Got a new ws msg: %v\n", msg)
+		if msg.ClosesAt != "" {
+			closesAt, err := time.Parse(timefmt, msg.ClosesAt)
+			if err != nil {
+				log.Printf("time parsing error: fmt=%s, to parse=%s, err: %s", timefmt, msg.ClosesAt, err.Error())
+			}
+			room := roomManager.CreateAuction(closesAt)
+			c.hub.newRoom <- room
 		}
 	}
 }
@@ -112,7 +139,9 @@ func (c *RoomUpdatesClient) WriteLoop() {
 type RoomUpdatesHub struct {
 	clients map[*RoomUpdatesClient]bool
 
+	// TODO: potentially useful to rename the broadcast chan
 	broadcast  chan *AuctionRoom
+	newRoom    chan *AuctionRoom
 	register   chan *RoomUpdatesClient
 	unregister chan *RoomUpdatesClient
 }
@@ -121,6 +150,7 @@ func NewRoomUpdatesHub() *RoomUpdatesHub {
 	return &RoomUpdatesHub{
 		clients:    make(map[*RoomUpdatesClient]bool),
 		broadcast:  make(chan *AuctionRoom),
+		newRoom:    make(chan *AuctionRoom),
 		register:   make(chan *RoomUpdatesClient),
 		unregister: make(chan *RoomUpdatesClient),
 	}
@@ -140,12 +170,23 @@ func (h *RoomUpdatesHub) Run() {
 				log.Printf("TEST client unregistered: %s\n", client.id)
 			}
 		case auctionRoom := <-h.broadcast:
-			log.Printf("TEST room entry update: %v\n", auctionRoom)
-			log.Printf("TEST room entry update template: %s\n", string(auctionRoom.RenderRoomListEntry()))
+			log.Printf("TEST room entry update: %v\n\n", auctionRoom)
 			// broadcast the new state
 			for client := range h.clients {
 				select {
 				case client.send <- auctionRoom.RenderRoomListEntry():
+				default:
+					close(client.send)
+					delete(h.clients, client)
+				}
+			}
+		case newRoom := <-h.newRoom:
+			log.Printf("TEST new room: %v\n\n", newRoom)
+			log.Printf("TEST new room html: %s\n\n", string(newRoom.RenderNewRoomEntry()))
+			// broadcast the new room
+			for client := range h.clients {
+				select {
+				case client.send <- newRoom.RenderNewRoomEntry():
 				default:
 					close(client.send)
 					delete(h.clients, client)
