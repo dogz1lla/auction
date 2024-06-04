@@ -13,6 +13,9 @@ TODO
   - [x] make the list of auctions an html table (only admin for now);
   - [ ] upon going to the /home or /admin page create a websocket connection that updates the table
     when there are new highest bidders or the auction ends (expires);
+  - [ ] delete views/admin_page.html
+  - [ ] make the auction list update when an auction is created
+  - [ ] remove the create_auction endpoint and do that through the ws instead
 
 Next:
 */
@@ -87,11 +90,11 @@ func main() {
 
 	e.GET("/ws_room_updates", func(c echo.Context) error {
 		// c.Logger().Print("Ws connection request")
-		room.ServerRoomUpdatesWs(roomUpdatesHub, c)
+		room.ServerRoomUpdatesWs(roomUpdatesHub, roomManager, c)
 		return nil
 	})
 
-	//
+	// ---
 	e.POST("/create_auction", func(c echo.Context) error {
 		closesAtStr := c.FormValue("ClosesAt")
 		c.Logger().Printf("GOT TIME STR: %s", closesAtStr)

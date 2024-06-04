@@ -21,6 +21,9 @@
                 });
             })
         </script>
+        <script>
+            htmx.config.useTemplateFragments = true;
+        </script>
     </head>
 
     <body>
@@ -34,26 +37,30 @@
         Greetings, <span style="color: red">TODO</span>. Here are the currently running auctions:
     <div hx-ext="ws" ws-connect="/ws_room_updates">
         {{ template "home-page-auctions" .Rm.Rooms }}
+        {{ if .IsAdmin }}
+        <div style="border: 2px solid; border-radius: 3px">
+            {{ template "add-auction-form" . }}
+        </div>
     </div>
-    </div>
-    {{ if .IsAdmin }}
-    <div style="border: 2px solid; border-radius: 3px">
-        {{ template "add-auction-form" . }}
     </div>
     {{ end }}
 {{ end }}
 
 {{ block "home-page-auctions" . }}
-    <div id="auction list">
-        <table style="border: 1px solid">
+    <div id="auction_list">
+        <table id="auction_list_table" style="border: 1px solid">
+        <thead>
         <tr>
             <th>Auction id</th>
             <th>Current bid</th>
             <th>Join?</th>
         </tr>
+        </thead>
+        <tbody id="auction_list_body">
         {{ range $auction := . }}
             {{ template "home-auction-entry" $auction }}
         {{ end }}
+        </tbody>
         </table>
     </div>
 {{ end }}
@@ -67,8 +74,21 @@
 {{ end }}
 
 {{ block "add-auction-form" . }}
-<form hx-swap="outerHTML" hx-post="/create_auction">
+<form ws-send>
+<!-- <form hx-swap="outerHTML" hx-post="/create_auction"> -->
     expires <input type="datetime-local" name="ClosesAt">
     <button type="submit">Create</button>
 </form>
+{{ end }}
+
+{{ block "appendable-auction-entry" . }}
+<!-- need to wrap in tbody tag because otherwise tr will be stripped, see -->
+<!-- https://github.com/bigskysoftware/htmx/issues/1043#issuecomment-1510419850 -->
+<tbody  hx-swap-oob="beforeend:#auction_list_body">
+    <tr id="auction-entry-{{ .Id }}">
+        <td>{{ .Id }}</td>
+        <td>{{ .CurrentBid }}</td>
+        <td><a href="/auction?id={{ .Id }}">Join</a></td>
+    </tr>
+</tbody>
 {{ end }}

@@ -102,6 +102,19 @@ func (ar *AuctionRoom) RenderRoomListEntry() []byte {
 	return renderedMsg.Bytes()
 }
 
+func (ar *AuctionRoom) RenderNewRoomEntry() []byte {
+	tmpl := templating.NewTemplate()
+
+	var renderedMsg bytes.Buffer
+	// DONE: fix the div id naming
+	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "appendable-auction-entry", ar)
+	if err != nil {
+		log.Fatalf("Template parsing error: %s", err)
+	}
+
+	return renderedMsg.Bytes()
+}
+
 // To have more than one room we need a room manager.
 // The room manager should maintain a collection of currently active rooms;
 // it should also be able to register new rooms and remove rooms;
@@ -149,10 +162,11 @@ func (rm *RoomManager) GetRoomById(roomId string) (*AuctionRoom, error) {
 	return nil, errors.New(fmt.Sprintf("Auction room %s not found", roomId))
 }
 
-func (rm *RoomManager) CreateAuction(closesAt time.Time) {
+func (rm *RoomManager) CreateAuction(closesAt time.Time) *AuctionRoom {
 	newAuctionRoom := NewAuctionRoom()
 	newAuctionRoom.ClosesAt = closesAt
 	rm.Rooms[newAuctionRoom.Id] = newAuctionRoom
+	return newAuctionRoom
 }
 
 // have to put it here instead of templating because of circular imports
