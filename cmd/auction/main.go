@@ -11,11 +11,13 @@ TODO
   - [x] add expiration to the rooms; when room expires no new bids are allowed;
   - [x] create a border around the 'create auction' element on the admin page;
   - [x] make the list of auctions an html table (only admin for now);
-  - [ ] upon going to the /home or /admin page create a websocket connection that updates the table
-    when there are new highest bidders or the auction ends (expires);
+  - [x] upon going to the /home or /admin page create a websocket connection that updates the table
+    when there is new highest bidder;
   - [ ] delete views/admin_page.html
   - [x] make the auction list update when an auction is created
   - [x] remove the create_auction endpoint and do that through the ws instead
+  - [ ] upon going to the /home or /admin page create a websocket connection that updates the table
+    when the auction ends (expires);
 
 Next:
 */
@@ -60,20 +62,6 @@ func main() {
 
 	roomManager := room.NewRoomManager()
 	go roomManager.Run()
-	// e.GET("/home", func(c echo.Context) error {
-	// 	return c.Render(http.StatusOK, "home-page", mockHomePage)
-	// })
-	//
-	// e.POST("/bid", func(c echo.Context) error {
-	// 	id := c.FormValue("id")
-	//
-	// 	bid, err := strconv.ParseFloat(c.FormValue("bid"), 64)
-	// 	if err != nil {
-	// 		panic("TODO: validate the bid form value")
-	// 	}
-	// 	mockHomePage.SetBid(id, bid)
-	// 	return c.Render(http.StatusOK, "home-page", mockHomePage)
-	// })
 
 	// next two (three) endpoints work in tandem
 	e.GET("/admin", func(c echo.Context) error {
@@ -88,7 +76,6 @@ func main() {
 	})
 
 	e.GET("/ws_room_updates", func(c echo.Context) error {
-		// c.Logger().Print("Ws connection request")
 		room.ServerRoomUpdatesWs(roomUpdatesHub, roomManager, c)
 		return nil
 	})
@@ -126,7 +113,6 @@ func main() {
 	})
 
 	e.GET("/ws", func(c echo.Context) error {
-		// c.Logger().Print("Ws connection request")
 		userName := c.QueryParam("userName")
 		roomId := c.QueryParam("roomId")
 
