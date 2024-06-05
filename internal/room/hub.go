@@ -39,20 +39,19 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			// NOTE maps in go are not concurrent so use the lock (mentioned at 24:15 in the video)
 			h.clients[client] = true
-			log.Printf("client registered: %s\n", client.id)
+			log.Printf("client registered (auction): %s\n", client.id)
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				close(client.send)
 				delete(h.clients, client)
-				log.Printf("client unregistered: %s\n", client.id)
+				log.Printf("client unregistered (auction): %s\n", client.id)
 			}
 		case msg := <-h.broadcast:
 			// log messages in the hub if necessary...
 			// ...
+
 			// update the room state
-			// TODO: need to choose the correct room
 			msg.WsClient.room.ProcessBid(msg.WsClient.id, msg)
-			// have the updated room here -> TODO: send it to everyone in their /home
 			h.roomUpdatesHub.broadcast <- msg.WsClient.room
 
 			// broadcast the new state

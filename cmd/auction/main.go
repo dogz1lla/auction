@@ -13,13 +13,11 @@ TODO
   - [x] make the list of auctions an html table (only admin for now);
   - [x] upon going to the /home or /admin page create a websocket connection that updates the table
     when there is new highest bidder;
-  - [ ] delete views/admin_page.html
+  - [x] delete views/admin_page.html
   - [x] make the auction list update when an auction is created
   - [x] remove the create_auction endpoint and do that through the ws instead
   - [ ] upon going to the /home or /admin page create a websocket connection that updates the table
     when the auction ends (expires);
-
-Next:
 */
 package main
 
@@ -49,7 +47,6 @@ func main() {
 	e.Use(middleware.Logger())
 
 	e.Renderer = templating.NewTemplate()
-	// mockHomePage := templating.MockHomePage()
 	mockLoginPage := templating.NewLoginPage()
 	var allUsers users.Users
 	// TODO make an actual templated page and not just auction room struct
