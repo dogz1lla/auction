@@ -14,8 +14,8 @@ TODO
   - [ ] upon going to the /home or /admin page create a websocket connection that updates the table
     when there are new highest bidders or the auction ends (expires);
   - [ ] delete views/admin_page.html
-  - [ ] make the auction list update when an auction is created
-  - [ ] remove the create_auction endpoint and do that through the ws instead
+  - [x] make the auction list update when an auction is created
+  - [x] remove the create_auction endpoint and do that through the ws instead
 
 Next:
 */
@@ -24,7 +24,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -95,17 +94,6 @@ func main() {
 	})
 
 	// ---
-	e.POST("/create_auction", func(c echo.Context) error {
-		closesAtStr := c.FormValue("ClosesAt")
-		c.Logger().Printf("GOT TIME STR: %s", closesAtStr)
-		closesAt, err := time.Parse(timefmt, closesAtStr)
-		if err != nil {
-			log.Printf("time parsing error: fmt=%s, to parse=%s, err: %s", timefmt, closesAtStr, err.Error())
-		}
-		roomManager.CreateAuction(closesAt)
-		return c.NoContent(http.StatusOK)
-	})
-
 	e.GET("/login", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "login-page", mockLoginPage)
 	})
