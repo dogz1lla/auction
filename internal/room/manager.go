@@ -162,15 +162,14 @@ func (h *RoomUpdatesHub) Run() {
 		case client := <-h.register:
 			// NOTE maps in go are not concurrent so use the lock (mentioned at 24:15 in the video)
 			h.clients[client] = true
-			log.Printf("TEST client registered: %s\n", client.id)
+			log.Printf("client registered (room updates): %s\n", client.id)
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				close(client.send)
 				delete(h.clients, client)
-				log.Printf("TEST client unregistered: %s\n", client.id)
+				log.Printf("client unregistered (room updates): %s\n", client.id)
 			}
 		case auctionRoom := <-h.broadcast:
-			log.Printf("TEST room entry update: %v\n\n", auctionRoom)
 			// broadcast the new state
 			for client := range h.clients {
 				select {
@@ -181,8 +180,6 @@ func (h *RoomUpdatesHub) Run() {
 				}
 			}
 		case newRoom := <-h.newRoom:
-			log.Printf("TEST new room: %v\n\n", newRoom)
-			log.Printf("TEST new room html: %s\n\n", string(newRoom.RenderNewRoomEntry()))
 			// broadcast the new room
 			for client := range h.clients {
 				select {

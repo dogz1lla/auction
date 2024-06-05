@@ -36,7 +36,7 @@
     <div>
         Greetings, <span style="color: red">TODO</span>. Here are the currently running auctions:
     <div hx-ext="ws" ws-connect="/ws_room_updates">
-        {{ template "home-page-auctions" .Rm.Rooms }}
+        {{ template "home-page-auctions" .RoomManager.Rooms }}
         {{ if .IsAdmin }}
         <div style="border: 2px solid; border-radius: 3px">
             {{ template "add-auction-form" . }}
