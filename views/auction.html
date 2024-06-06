@@ -67,13 +67,15 @@
     </head>
 
     <body>
-        {{ template "auction-page-body" . }}
+        <div class="w-[60rem] m-auto bg-slate-300">
+            {{ template "auction-page-body" . }}
+        </div>
     </body>
 </html>
 {{ end }}
 
 {{ block "auction-page-body" . }}
-<div class="bg-slate-300">
+<div class="w-full">
     <div>Auction {{ .Room.Id }} (expires in <span id="auction-countdown-{{ .Room.Id }}"></span>)</div>
     <script>startCountdown({{ .Expiration }}, "auction-countdown-{{ .Room.Id }}")</script>
     {{ template "auction-state" .Room }}
