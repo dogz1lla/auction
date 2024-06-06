@@ -89,7 +89,6 @@ func (c *RoomUpdatesClient) ReadLoop(roomManager *RoomManager) {
 			log.Printf("Json decoding error: %v\n", err)
 		}
 
-		log.Printf("Got a new ws msg: %v\n", msg)
 		if msg.ClosesAt != "" {
 			closesAt, err := time.Parse(timefmt, msg.ClosesAt)
 			if err != nil {
