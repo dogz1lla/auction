@@ -37,7 +37,9 @@
 
 {{ block "home-page-body" . }}
     <div class="w-full">
+    <p class="pb-2 pt-2">
         Greetings, <span style="color: red">TODO</span>. Here are the currently running auctions:
+    </p>
         <div hx-ext="ws" ws-connect="/ws_room_updates">
             {{ template "home-page-auctions" .RoomManager.Rooms }}
             {{ if .IsAdmin }}
