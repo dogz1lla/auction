@@ -2,7 +2,7 @@
 
 ## Description
 This app allows emulating an auction functionality. An auction is an example of an application that
-supports more than one user participating in the same auction at the same time. All the participants
+supports more than one user participating in the same activity at the same time. All the participants
 are updated about the other users' activity (in this case -- new highest bid placed) instantly.
 
 ## Functionality
