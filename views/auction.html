@@ -67,7 +67,7 @@
     </head>
 
     <body>
-        <div class="w-[60rem] m-auto bg-slate-300">
+        <div class="w-[60rem] m-auto">
             {{ template "auction-page-body" . }}
         </div>
     </body>
@@ -76,7 +76,11 @@
 
 {{ block "auction-page-body" . }}
 <div class="w-full">
-    <div>Auction {{ .Room.Id }} (expires in <span id="auction-countdown-{{ .Room.Id }}"></span>)</div>
+    <div>
+        <p class="pb-2 pt-2">
+        Auction {{ .Room.Id }} (expires in <span id="auction-countdown-{{ .Room.Id }}"></span>)
+        </p>
+    </div>
     <script>startCountdown({{ .Expiration }}, "auction-countdown-{{ .Room.Id }}")</script>
     {{ template "auction-state" .Room }}
     <div hx-ext="ws" ws-connect="/ws?userName={{ .User.Name }}&roomId={{ .Room.Id }}">
@@ -87,19 +91,35 @@
 
 {{ block "auction-state" . }}
     <div id="auction-state">
-    Current highest bidder: {{ .CurrentBidder }}, current bid: <span style="color: red">{{ .CurrentBid }}</span>
+        <p class="pb-2 pt-2">
+        Current highest bidder: {{ .CurrentBidder }}, current bid: <span style="color: red">{{ .CurrentBid }}</span>
+        </p>
     </div>
 {{ end }}
 
 {{ block "bid-form" . }}
-<form ws-send>
-    your bid: <input
-    class="border border-[#282a36]"
-    type="number"
-    name="bid">
+<form 
+    ws-send
+    class="w-1/2 bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4"
+>
+    <div class="mb-4">
+    <label class="block text-gray-700 text-sm font-bold mb-2" for="bid">
+        Your bid
+    </label>
+    <input
+        type="number"
+        name="bid"
+        id="bid"
+        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+        placeholder="place your bid"
+    >
+    </div>
     <!-- <input type="hidden" name="bidderId" value="kek_todo"> -->
     <button
-        class="bg-gray-300 border-2 border-teal-600 text-gray-900"
-        type="submit">Place bid!</button>
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+        type="submit"
+    >
+        Bid!
+    </button>
 </form>
 {{ end }}
