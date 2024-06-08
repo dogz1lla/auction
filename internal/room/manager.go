@@ -96,6 +96,22 @@ func (c *RoomUpdatesClient) ReadLoop(roomManager *RoomManager) {
 			}
 			room := roomManager.CreateAuction(closesAt)
 			c.hub.newRoom <- room
+			go func() {
+				expiresAfter := GetMillisTill(closesAt)
+				// we have a room that is already expired -> handle it right away
+				if expiresAfter <= 0 {
+					c.hub.roomExpired <- room
+					return
+				}
+				// time.Duration is in nanoseconds
+				expirationClock := time.After(time.Duration(1_000_000 * expiresAfter))
+				for {
+					select {
+					case <-expirationClock:
+						c.hub.roomExpired <- room
+					}
+				}
+			}()
 		}
 	}
 }
@@ -139,19 +155,21 @@ type RoomUpdatesHub struct {
 	clients map[*RoomUpdatesClient]bool
 
 	// TODO: potentially useful to rename the broadcast chan
-	broadcast  chan *AuctionRoom
-	newRoom    chan *AuctionRoom
-	register   chan *RoomUpdatesClient
-	unregister chan *RoomUpdatesClient
+	broadcast   chan *AuctionRoom
+	newRoom     chan *AuctionRoom
+	roomExpired chan *AuctionRoom
+	register    chan *RoomUpdatesClient
+	unregister  chan *RoomUpdatesClient
 }
 
 func NewRoomUpdatesHub() *RoomUpdatesHub {
 	return &RoomUpdatesHub{
-		clients:    make(map[*RoomUpdatesClient]bool),
-		broadcast:  make(chan *AuctionRoom),
-		newRoom:    make(chan *AuctionRoom),
-		register:   make(chan *RoomUpdatesClient),
-		unregister: make(chan *RoomUpdatesClient),
+		clients:     make(map[*RoomUpdatesClient]bool),
+		broadcast:   make(chan *AuctionRoom),
+		newRoom:     make(chan *AuctionRoom),
+		roomExpired: make(chan *AuctionRoom),
+		register:    make(chan *RoomUpdatesClient),
+		unregister:  make(chan *RoomUpdatesClient),
 	}
 }
 
