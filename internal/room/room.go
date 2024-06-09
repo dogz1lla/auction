@@ -98,6 +98,18 @@ func (ar *AuctionRoom) RenderNewRoomEntry() []byte {
 	return renderedMsg.Bytes()
 }
 
+func (ar *AuctionRoom) RenderExpiredRoomEntry() []byte {
+	tmpl := templating.NewTemplate()
+
+	var renderedMsg bytes.Buffer
+	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "expired-auction-entry", NewRoomListEntry(ar))
+	if err != nil {
+		log.Fatalf("Template parsing error: %s", err)
+	}
+
+	return renderedMsg.Bytes()
+}
+
 // To have more than one room we need a room manager.
 // The room manager should maintain a collection of currently active rooms;
 // it should also be able to register new rooms and remove rooms;
@@ -166,10 +178,16 @@ func NewAuctionPage(ar *AuctionRoom) *AuctionPage {
 
 // NOTE: again, need to define this here instead of in templating due to the circular imports
 type HomePage struct {
-	IsAdmin     bool
-	RoomManager *RoomManager
+	IsAdmin bool
+	//RoomManager *RoomManager
+	RoomEntries []*RoomListEntry
 }
 
 func NewHomePage(isAdmin bool, roomManager *RoomManager) HomePage {
-	return HomePage{IsAdmin: isAdmin, RoomManager: roomManager}
+	//return HomePage{IsAdmin: isAdmin, RoomManager: roomManager}
+	roomEntries := make([]*RoomListEntry, 0)
+	for _, room := range roomManager.Rooms {
+		roomEntries = append(roomEntries, NewRoomListEntry(room))
+	}
+	return HomePage{IsAdmin: isAdmin, RoomEntries: roomEntries}
 }
