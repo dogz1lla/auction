@@ -21,6 +21,34 @@
                     }
                 });
             })
+
+            // see https://www.w3schools.com/howto/howto_js_countdown.asp
+            function renderCountdown(params, intervalRef, elementId, decrement) {
+                // Time calculations for days, hours, minutes and seconds
+                var days = Math.floor(params.millis / (1000 * 60 * 60 * 24));
+                var hours = Math.floor((params.millis % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                var minutes = Math.floor((params.millis % (1000 * 60 * 60)) / (1000 * 60));
+                var seconds = Math.floor((params.millis % (1000 * 60)) / 1000);
+
+                // Display the result in the element with id=elementId
+                document.getElementById(elementId).innerHTML = days + "d " + hours + "h "
+                + minutes + "m " + seconds + "s ";
+
+                // If the count down is finished, write some text
+                if (params.millis < 0) {
+                    clearInterval(intervalRef);
+                    document.getElementById(elementId).innerHTML = "EXPIRED";
+                } 
+                params.millis = params.millis - decrement;
+            }
+
+            function startCountdown(millis, elementId) {
+                var remaining = {millis: millis};  // see https://stackoverflow.com/a/3638034
+                var T = 1000;  // period of update -- 1 sec
+                var countdown = setInterval(function() {
+                    renderCountdown(remaining, countdown, elementId, T)
+                }, T)
+            }
         </script>
         <script>
             htmx.config.useTemplateFragments = true;
@@ -60,6 +88,7 @@
         <tr>
             <th align="center">Auction id</th>
             <th align="center">Current bid</th>
+            <th align="center">Expires in</th>
             <th align="center">Join?</th>
         </tr>
         </thead>
@@ -74,9 +103,11 @@
 
 {{ block "home-auction-entry" . }}
     <tr id="auction-entry-{{ .Id }}">
-        <td align="center">{{ .Id }}</td>
-        <td align="center">{{ .CurrentBid }}</td>
-        <td align="center"><a href="/auction?id={{ .Id }}">Join</a></td>
+        <td align="center">{{ .Room.Id }}</td>
+        <td align="center">{{ .Room.CurrentBid }}</td>
+        <td align="center" id="auction-countdown-{{ .Room.Id }}">Updating...</td>
+        <script>startCountdown({{ .Room.ExpiresIn }}, "auction-countdown-{{ .Room.Id }}")</script>
+        <td align="center"><a href="/auction?id={{ .Room.Id }}">Join</a></td>
     </tr>
 {{ end }}
 
