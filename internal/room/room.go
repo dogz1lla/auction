@@ -59,11 +59,26 @@ func (ar *AuctionRoom) RenderState() []byte {
 	return renderedMsg.Bytes()
 }
 
+// Below is code related to auction list found on the home page of a user
+type RoomListEntry struct {
+	// TODO: compare with the AuctionPage, remove redundancy
+	// TODO: in the auction_list_body element need to make sure that the collection is of entries
+	Room      *AuctionRoom
+	ExpiresIn int64
+}
+
+func NewRoomListEntry(room *AuctionRoom) *RoomListEntry {
+	return &RoomListEntry{
+		Room:      room,
+		ExpiresIn: GetMillisTill(room.ClosesAt),
+	}
+}
+
 func (ar *AuctionRoom) RenderRoomListEntry() []byte {
 	tmpl := templating.NewTemplate()
 
 	var renderedMsg bytes.Buffer
-	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "home-auction-entry", ar)
+	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "home-auction-entry", NewRoomListEntry(ar))
 	if err != nil {
 		log.Fatalf("Template parsing error: %s", err)
 	}
@@ -75,7 +90,7 @@ func (ar *AuctionRoom) RenderNewRoomEntry() []byte {
 	tmpl := templating.NewTemplate()
 
 	var renderedMsg bytes.Buffer
-	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "appendable-auction-entry", ar)
+	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "appendable-auction-entry", NewRoomListEntry(ar))
 	if err != nil {
 		log.Fatalf("Template parsing error: %s", err)
 	}
