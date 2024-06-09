@@ -206,6 +206,16 @@ func (h *RoomUpdatesHub) Run() {
 					delete(h.clients, client)
 				}
 			}
+		case expiredRoom := <-h.roomExpired:
+			// broadcast the new room
+			for client := range h.clients {
+				select {
+				case client.send <- expiredRoom.RenderExpiredRoomEntry():
+				default:
+					close(client.send)
+					delete(h.clients, client)
+				}
+			}
 		}
 	}
 }

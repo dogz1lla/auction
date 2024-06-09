@@ -24,6 +24,11 @@
 
             // see https://www.w3schools.com/howto/howto_js_countdown.asp
             function renderCountdown(params, intervalRef, elementId, decrement) {
+                var element = document.getElementById(elementId)
+                if (!element) {
+                    // the element was removed from the dom
+                    clearInterval(intervalRef);
+                }
                 // Time calculations for days, hours, minutes and seconds
                 var days = Math.floor(params.millis / (1000 * 60 * 60 * 24));
                 var hours = Math.floor((params.millis % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -31,7 +36,7 @@
                 var seconds = Math.floor((params.millis % (1000 * 60)) / 1000);
 
                 // Display the result in the element with id=elementId
-                document.getElementById(elementId).innerHTML = days + "d " + hours + "h "
+                element.innerHTML = days + "d " + hours + "h "
                 + minutes + "m " + seconds + "s ";
 
                 // If the count down is finished, write some text
@@ -69,7 +74,7 @@
         Greetings, <span style="color: red">TODO</span>. Here are the currently running auctions:
     </p>
         <div hx-ext="ws" ws-connect="/ws_room_updates">
-            {{ template "home-page-auctions" .RoomManager.Rooms }}
+            {{ template "home-page-auctions" .RoomEntries }}
             {{ if .IsAdmin }}
                 <div class="h-[2rem]">
                 </div>
@@ -93,8 +98,8 @@
         </tr>
         </thead>
         <tbody id="auction_list_body">
-        {{ range $auction := . }}
-            {{ template "home-auction-entry" $auction }}
+        {{ range $entry := . }}
+            {{ template "home-auction-entry" $entry }}
         {{ end }}
         </tbody>
         </table>
@@ -102,11 +107,11 @@
 {{ end }}
 
 {{ block "home-auction-entry" . }}
-    <tr id="auction-entry-{{ .Id }}">
+    <tr id="auction-entry-{{ .Room.Id }}">
         <td align="center">{{ .Room.Id }}</td>
         <td align="center">{{ .Room.CurrentBid }}</td>
         <td align="center" id="auction-countdown-{{ .Room.Id }}">Updating...</td>
-        <script>startCountdown({{ .Room.ExpiresIn }}, "auction-countdown-{{ .Room.Id }}")</script>
+        <script>startCountdown({{ .ExpiresIn }}, "auction-countdown-{{ .Room.Id }}")</script>
         <td align="center"><a href="/auction?id={{ .Room.Id }}">Join</a></td>
     </tr>
 {{ end }}
@@ -128,10 +133,23 @@
 <!-- need to wrap in tbody tag because otherwise tr will be stripped, see -->
 <!-- https://github.com/bigskysoftware/htmx/issues/1043#issuecomment-1510419850 -->
 <tbody  hx-swap-oob="beforeend:#auction_list_body">
-    <tr id="auction-entry-{{ .Id }}">
-        <td align="center">{{ .Id }}</td>
-        <td align="center">{{ .CurrentBid }}</td>
-        <td align="center"><a href="/auction?id={{ .Id }}">Join</a></td>
+    <tr id="auction-entry-{{ .Room.Id }}">
+        <td align="center">{{ .Room.Id }}</td>
+        <td align="center">{{ .Room.CurrentBid }}</td>
+        <td align="center" id="auction-countdown-{{ .Room.Id }}">Updating...</td>
+        <script>startCountdown({{ .ExpiresIn }}, "auction-countdown-{{ .Room.Id }}")</script>
+        <td align="center"><a href="/auction?id={{ .Room.Id }}">Join</a></td>
     </tr>
 </tbody>
+{{ end }}
+
+{{ block "expired-auction-entry" . }}
+<!-- need to wrap in tbody tag because otherwise tr will be stripped, see -->
+<!-- https://github.com/bigskysoftware/htmx/issues/1043#issuecomment-1510419850 -->
+<tr hx-swap="outerHTML" id="auction-entry-{{ .Room.Id }}">
+    <td align="center">{{ .Room.Id }}</td>
+    <td align="center">{{ .Room.CurrentBid }}</td>
+    <td align="center"><span style="color: red">EXPIRED</span></td>
+    <td align="center">Closed</td>
+</tr>
 {{ end }}
