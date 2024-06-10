@@ -179,16 +179,18 @@ func NewAuctionPage(ar *AuctionRoom) *AuctionPage {
 
 // NOTE: again, need to define this here instead of in templating due to the circular imports
 type HomePage struct {
-	IsAdmin bool
+	User *users.User
 	//RoomManager *RoomManager
 	RoomEntries []*RoomListEntry
 }
 
-func NewHomePage(isAdmin bool, roomManager *RoomManager) HomePage {
+func NewHomePage(userName string, roomManager *RoomManager) HomePage {
 	//return HomePage{IsAdmin: isAdmin, RoomManager: roomManager}
 	roomEntries := make([]*RoomListEntry, 0)
 	for _, room := range roomManager.Rooms {
 		roomEntries = append(roomEntries, NewRoomListEntry(room))
 	}
-	return HomePage{IsAdmin: isAdmin, RoomEntries: roomEntries}
+	// TODO: add a check that the user exists in the db
+	user := users.NewUser(userName)
+	return HomePage{User: user, RoomEntries: roomEntries}
 }
