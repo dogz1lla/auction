@@ -32,8 +32,9 @@ func NewAuctionRoom() *AuctionRoom {
 
 func (ar *AuctionRoom) ProcessBid(userName string, msg *Message) error {
 	if time.Now().UTC().After(ar.ClosesAt) {
-		log.Printf("Room %s has expired! No new bids allowed!\n", ar.Id)
-		return nil
+		errorMsg := fmt.Sprintf("Room %s has expired! No new bids allowed!", ar.Id)
+		log.Println(errorMsg)
+		return errors.New(errorMsg)
 	}
 	bid := msg.Bid
 	if bid > ar.CurrentBid {

@@ -51,7 +51,12 @@ func (h *Hub) Run() {
 			// ...
 
 			// update the room state
-			msg.WsClient.room.ProcessBid(msg.WsClient.id, msg)
+			if err := msg.WsClient.room.ProcessBid(msg.WsClient.id, msg); err != nil {
+				// Someone managed to place a bid in an already expired room, we should just ignore
+				// this case here because otherwise the expired entry in the auction list will be
+				// replaced with the entry that is joinable
+				continue
+			}
 			h.roomUpdatesHub.broadcast <- msg.WsClient.room
 
 			// broadcast the new state
