@@ -16,12 +16,13 @@ TODO
   - [x] delete views/admin_page.html
   - [x] make the auction list update when an auction is created
   - [x] remove the create_auction endpoint and do that through the ws instead
-  - [ ] upon going to the /home or /admin page create a websocket connection that updates the table
+  - [x] upon going to the /home or /admin page create a websocket connection that updates the table
     when the auction ends (expires);
 */
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -62,13 +63,14 @@ func main() {
 
 	// next two (three) endpoints work in tandem
 	e.GET("/admin", func(c echo.Context) error {
-		homePage := room.NewHomePage(true, roomManager)
+		homePage := room.NewHomePage("admin", roomManager)
 		//return c.Render(http.StatusOK, "admin-page", roomManager)
 		return c.Render(http.StatusOK, "home-page", homePage)
 	})
 
 	e.GET("/home", func(c echo.Context) error {
-		homePage := room.NewHomePage(false, roomManager)
+		userName := c.QueryParam("userName")
+		homePage := room.NewHomePage(userName, roomManager)
 		return c.Render(http.StatusOK, "home-page", homePage)
 	})
 
@@ -87,11 +89,10 @@ func main() {
 		user := users.NewUser(userName)
 		allUsers = append(allUsers, user)
 		// TODO: implement a proper auth
-		isAdmin := userName == "admin"
-		if isAdmin {
+		if userName == "admin" {
 			c.Response().Header().Set("HX-Redirect", "/admin")
 		} else {
-			c.Response().Header().Set("HX-Redirect", "/home")
+			c.Response().Header().Set("HX-Redirect", fmt.Sprintf("/home?userName=%s", userName))
 		}
 		return c.NoContent(http.StatusOK)
 	})
