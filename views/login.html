@@ -3,9 +3,10 @@
 <html lang="end">
     <head>
         <title>
-            Home page
+            Login page
         </title>
         <script src="https://unpkg.com/htmx.org/dist/htmx.min.js"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
         <script>
             document.addEventListener("DOMContentLoaded", (event) => {
                 document.body.addEventListener('htmx:beforeSwap', function(evt){
@@ -23,21 +24,35 @@
     </head>
 
     <body>
+    <div class="w-[60rem] m-auto">
         {{ template "login-form" .Form }}
+    </div>
     </body>
 </html>
 {{ end }}
 
 {{ block "login-form" . }}
-<form hx-swap="outerHTML" hx-post="/login">
-    login <input
+<div class="w-full max-w-xs">
+<form hx-swap="outerHTML" hx-post="/login" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+    <div class="mb-4">
+    <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
+        Username
+    </label>
+    <input
     {{ if .Values.login }} value="{{ .Values.login }}" {{ end }}
     type="text"
-    name="login">
+    name="login"
+    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="username" type="text" placeholder="Username">
+    </div>
 
     {{ if .Errors.login }}
     <div style="color: red">{{ .Errors.login }}</div>
     {{ end }}
-    <button type="submit">login</button>
+    <button
+      type="submit"
+      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+        Login
+    </button>
 </form>
+</div>
 {{ end }}

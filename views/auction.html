@@ -3,7 +3,7 @@
 <html lang="end">
     <head>
         <title>
-            Home page
+            Auction {{ .Room.Id }}
         </title>
         <script src="https://unpkg.com/htmx.org/dist/htmx.min.js"></script>
         <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
@@ -21,6 +21,34 @@
                     }
                 });
             })
+
+            // see https://www.w3schools.com/howto/howto_js_countdown.asp
+            function renderCountdown(params, intervalRef, elementId, decrement) {
+                // Time calculations for days, hours, minutes and seconds
+                var days = Math.floor(params.millis / (1000 * 60 * 60 * 24));
+                var hours = Math.floor((params.millis % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                var minutes = Math.floor((params.millis % (1000 * 60 * 60)) / (1000 * 60));
+                var seconds = Math.floor((params.millis % (1000 * 60)) / 1000);
+
+                // Display the result in the element with id=elementId
+                document.getElementById(elementId).innerHTML = days + "d " + hours + "h "
+                + minutes + "m " + seconds + "s ";
+
+                // If the count down is finished, write some text
+                if (params.millis < 0) {
+                    clearInterval(intervalRef);
+                    document.getElementById(elementId).innerHTML = "EXPIRED";
+                } 
+                params.millis = params.millis - decrement;
+            }
+
+            function startCountdown(millis, elementId) {
+                var remaining = {millis: millis};  // see https://stackoverflow.com/a/3638034
+                var T = 1000;  // period of update -- 1 sec
+                var countdown = setInterval(function() {
+                    renderCountdown(remaining, countdown, elementId, T)
+                }, T)
+            }
         </script>
 
         <!-- <script> -->
@@ -39,15 +67,23 @@
     </head>
 
     <body>
-        {{ template "auction-page-body" . }}
+        <div class="w-[60rem] m-auto">
+            {{ template "auction-page-body" . }}
+        </div>
     </body>
 </html>
 {{ end }}
 
 {{ block "auction-page-body" . }}
-<div class="bg-slate-300">
-    {{ template "auction-state" . }}
-    <div hx-ext="ws" ws-connect="/ws?userName=kek">
+<div class="w-full">
+    <div>
+        <p class="pb-2 pt-2">
+        Auction {{ .Room.Id }} (expires in <span id="auction-countdown-{{ .Room.Id }}"></span>)
+        </p>
+    </div>
+    <script>startCountdown({{ .Expiration }}, "auction-countdown-{{ .Room.Id }}")</script>
+    {{ template "auction-state" .Room }}
+    <div hx-ext="ws" ws-connect="/ws?userName={{ .User.Name }}&roomId={{ .Room.Id }}">
         {{ template "bid-form" . }}
     </div>
 </div>
@@ -55,19 +91,35 @@
 
 {{ block "auction-state" . }}
     <div id="auction-state">
-    Current highest bidder: {{ .CurrentBidder }}, current bid: <span style="color: red">{{ .CurrentBid }}</span>
+        <p class="pb-2 pt-2">
+        Current highest bidder: {{ .CurrentBidder.Name }}, current bid: <span style="color: red">{{ .CurrentBid }}</span>
+        </p>
     </div>
 {{ end }}
 
 {{ block "bid-form" . }}
-<form ws-send>
-    your bid: <input
-    class="border border-[#282a36]"
-    type="number"
-    name="bid">
-    <input type="hidden" name="bidderId" value="kek_todo">
+<form 
+    ws-send
+    class="w-1/2 bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4"
+>
+    <div class="mb-4">
+    <label class="block text-gray-700 text-sm font-bold mb-2" for="bid">
+        Your bid
+    </label>
+    <input
+        type="number"
+        name="bid"
+        id="bid"
+        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+        placeholder="place your bid"
+    >
+    </div>
+    <!-- <input type="hidden" name="bidderId" value="kek_todo"> -->
     <button
-        class="bg-gray-300 border-2 border-teal-600 text-gray-900"
-        type="submit">Place bid!</button>
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+        type="submit"
+    >
+        Bid!
+    </button>
 </form>
 {{ end }}

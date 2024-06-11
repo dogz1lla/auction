@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/dogz1lla/auction/internal/users"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -13,7 +14,9 @@ import (
 
 type Client struct {
 	id   string
+	user *users.User
 	hub  *Hub
+	room *AuctionRoom
 	conn *websocket.Conn
 	send chan []byte
 }
@@ -30,18 +33,25 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func ServerWs(hub *Hub, c echo.Context) {
+func ServerWs(hub *Hub, roomManager *RoomManager, c echo.Context, user *users.User, roomId string) {
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	id := uuid.New()
+	room, err := roomManager.GetRoomById(roomId)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
+	id := uuid.New().String()
 	client := &Client{
-		id:   id.String(),
+		id:   id,
+		user: user,
 		hub:  hub,
+		room: room,
 		conn: conn,
 		send: make(chan []byte),
 	}
@@ -67,7 +77,6 @@ func (c *Client) ReadLoop() {
 
 	for {
 		_, text, err := c.conn.ReadMessage()
-		// log.Printf("new ws msg %v\n", string(text))
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("Unexpected ws close error: %v\n", err)
@@ -81,7 +90,7 @@ func (c *Client) ReadLoop() {
 		if err := decoder.Decode(msg); err != nil {
 			log.Printf("Json decoding error: %v\n", err)
 		}
-		c.hub.broadcast <- &Message{ClientID: c.id, Bid: msg.Bid}
+		c.hub.broadcast <- &Message{WsClient: c, Bid: msg.Bid}
 	}
 }
 
