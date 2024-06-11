@@ -73,7 +73,7 @@
     <p class="pb-2 pt-2">
         Greetings, <span style="color: red">{{ .User.Name }}</span>. Here are the currently running auctions:
     </p>
-        <div hx-ext="ws" ws-connect="/ws_room_updates">
+        <div hx-ext="ws" ws-connect="/ws_room_updates?userName={{ .User.Name }}">
             {{ template "home-page-auctions" .RoomEntries }}
             {{ if .User.IsAdmin }}
                 <div class="h-[2rem]">
@@ -92,6 +92,7 @@
         <thead>
         <tr>
             <th align="center">Auction id</th>
+            <th align="center">Highest bidder</th>
             <th align="center">Current bid</th>
             <th align="center">Expires in</th>
             <th align="center">Join?</th>
@@ -109,10 +110,11 @@
 {{ block "home-auction-entry" . }}
     <tr id="auction-entry-{{ .Room.Id }}">
         <td align="center">{{ .Room.Id }}</td>
+        <td align="center">{{ .Room.CurrentBidder.Name }}</td>
         <td align="center">{{ .Room.CurrentBid }}</td>
         <td align="center" id="auction-countdown-{{ .Room.Id }}">Updating...</td>
         <script>startCountdown({{ .ExpiresIn }}, "auction-countdown-{{ .Room.Id }}")</script>
-        <td align="center"><a href="/auction?id={{ .Room.Id }}">Join</a></td>
+        <td align="center"><a href="/auction?id={{ .Room.Id }}&userName={{ .User.Name }}">Join</a></td>
     </tr>
 {{ end }}
 
@@ -135,10 +137,11 @@
 <tbody  hx-swap-oob="beforeend:#auction_list_body">
     <tr id="auction-entry-{{ .Room.Id }}">
         <td align="center">{{ .Room.Id }}</td>
+        <td align="center">{{ .Room.CurrentBidder.Name }}</td>
         <td align="center">{{ .Room.CurrentBid }}</td>
         <td align="center" id="auction-countdown-{{ .Room.Id }}">Updating...</td>
         <script>startCountdown({{ .ExpiresIn }}, "auction-countdown-{{ .Room.Id }}")</script>
-        <td align="center"><a href="/auction?id={{ .Room.Id }}">Join</a></td>
+        <td align="center"><a href="/auction?id={{ .Room.Id }}&userName={{ .User.Name }}">Join</a></td>
     </tr>
 </tbody>
 {{ end }}
@@ -148,6 +151,7 @@
 <!-- https://github.com/bigskysoftware/htmx/issues/1043#issuecomment-1510419850 -->
 <tr hx-swap="outerHTML" id="auction-entry-{{ .Room.Id }}">
     <td align="center">{{ .Room.Id }}</td>
+    <td align="center">{{ .Room.CurrentBidder.Name }}</td>
     <td align="center">{{ .Room.CurrentBid }}</td>
     <td align="center"><span style="color: red">EXPIRED</span></td>
     <td align="center">Closed</td>

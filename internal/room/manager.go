@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/dogz1lla/auction/internal/users"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -29,12 +30,13 @@ type WSRoomUpdatesMessage struct {
 
 type RoomUpdatesClient struct {
 	id   string
+	user *users.User
 	hub  *RoomUpdatesHub
 	conn *websocket.Conn
 	send chan []byte
 }
 
-func ServerRoomUpdatesWs(hub *RoomUpdatesHub, roomManager *RoomManager, c echo.Context) {
+func ServerRoomUpdatesWs(hub *RoomUpdatesHub, user *users.User, roomManager *RoomManager, c echo.Context) {
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		log.Println(err)
@@ -44,6 +46,7 @@ func ServerRoomUpdatesWs(hub *RoomUpdatesHub, roomManager *RoomManager, c echo.C
 	id := uuid.New().String()
 	client := &RoomUpdatesClient{
 		id:   id,
+		user: user,
 		hub:  hub,
 		conn: conn,
 		send: make(chan []byte),
@@ -190,7 +193,7 @@ func (h *RoomUpdatesHub) Run() {
 			// broadcast the new state
 			for client := range h.clients {
 				select {
-				case client.send <- auctionRoom.RenderRoomListEntry():
+				case client.send <- auctionRoom.RenderRoomListEntry(client.user):
 				default:
 					close(client.send)
 					delete(h.clients, client)
@@ -200,7 +203,7 @@ func (h *RoomUpdatesHub) Run() {
 			// broadcast the new room
 			for client := range h.clients {
 				select {
-				case client.send <- newRoom.RenderNewRoomEntry():
+				case client.send <- newRoom.RenderNewRoomEntry(client.user):
 				default:
 					close(client.send)
 					delete(h.clients, client)
@@ -210,7 +213,7 @@ func (h *RoomUpdatesHub) Run() {
 			// broadcast the new room
 			for client := range h.clients {
 				select {
-				case client.send <- expiredRoom.RenderExpiredRoomEntry():
+				case client.send <- expiredRoom.RenderExpiredRoomEntry(client.user):
 				default:
 					close(client.send)
 					delete(h.clients, client)
