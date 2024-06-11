@@ -16,5 +16,5 @@ bid), place new bids (invalid bids are rejected);
 - client interactivity is achieved through `htmx` + websockets;
 
 ## TODO
-- [ ] associate websocket connection uids with usernames;
-- [ ] update auction list whenever an auction expires;
+- [x] ~~associate websocket connection uids with usernames;~~
+- [x] ~~update auction list whenever an auction expires;~~
