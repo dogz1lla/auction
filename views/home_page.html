@@ -6,6 +6,8 @@
             Home page
         </title>
         <script src="https://unpkg.com/htmx.org/dist/htmx.min.js"></script>
+        <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
         <script>
             document.addEventListener("DOMContentLoaded", (event) => {
                 document.body.addEventListener('htmx:beforeSwap', function(evt){
@@ -19,32 +21,139 @@
                     }
                 });
             })
+
+            // see https://www.w3schools.com/howto/howto_js_countdown.asp
+            function renderCountdown(params, intervalRef, elementId, decrement) {
+                var element = document.getElementById(elementId)
+                if (!element) {
+                    // the element was removed from the dom
+                    clearInterval(intervalRef);
+                }
+                // Time calculations for days, hours, minutes and seconds
+                var days = Math.floor(params.millis / (1000 * 60 * 60 * 24));
+                var hours = Math.floor((params.millis % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                var minutes = Math.floor((params.millis % (1000 * 60 * 60)) / (1000 * 60));
+                var seconds = Math.floor((params.millis % (1000 * 60)) / 1000);
+
+                // Display the result in the element with id=elementId
+                element.innerHTML = days + "d " + hours + "h "
+                + minutes + "m " + seconds + "s ";
+
+                // If the count down is finished, write some text
+                if (params.millis < 0) {
+                    clearInterval(intervalRef);
+                    document.getElementById(elementId).innerHTML = "EXPIRED";
+                } 
+                params.millis = params.millis - decrement;
+            }
+
+            function startCountdown(millis, elementId) {
+                var remaining = {millis: millis};  // see https://stackoverflow.com/a/3638034
+                var T = 1000;  // period of update -- 1 sec
+                var countdown = setInterval(function() {
+                    renderCountdown(remaining, countdown, elementId, T)
+                }, T)
+            }
+        </script>
+        <script>
+            htmx.config.useTemplateFragments = true;
         </script>
     </head>
 
     <body>
+    <div class="w-[60rem] m-auto">
         {{ template "home-page-body" . }}
+    </div>
     </body>
 </html>
 {{ end }}
 
 {{ block "home-page-body" . }}
-    <div>
-        Greetings, Test user. Here are the currently running auctions:
-        <div> {{ template "home-page-auctions" .Auctions }}</div>
+    <div class="w-full">
+    <p class="pb-2 pt-2">
+        Greetings, <span style="color: red">{{ .User.Name }}</span>. Here are the currently running auctions:
+    </p>
+        <div hx-ext="ws" ws-connect="/ws_room_updates?userName={{ .User.Name }}">
+            {{ template "home-page-auctions" .RoomEntries }}
+            {{ if .User.IsAdmin }}
+                <div class="h-[2rem]">
+                </div>
+                <div class="w-[58rem] m-auto">
+                    {{ template "add-auction-form" . }}
+                </div>
+            {{ end }}
+        </div>
     </div>
 {{ end }}
 
 {{ block "home-page-auctions" . }}
-    <div>
-    {{ range $auction := . }}
-        {{ template "auction-entry" $auction }}
-    {{ end }}
+    <div id="auction_list">
+        <table id="auction_list_table" class="w-[60rem] m-auto border-solid border-2">
+        <thead>
+        <tr>
+            <th align="center">Auction id</th>
+            <th align="center">Highest bidder</th>
+            <th align="center">Current bid</th>
+            <th align="center">Expires in</th>
+            <th align="center">Join?</th>
+        </tr>
+        </thead>
+        <tbody id="auction_list_body">
+        {{ range $entry := . }}
+            {{ template "home-auction-entry" $entry }}
+        {{ end }}
+        </tbody>
+        </table>
     </div>
 {{ end }}
 
-{{ block "auction-entry" . }}
-    <div>
-        Auction {{ .Id }}: current bid = {{ .CurrentBid }}
+{{ block "home-auction-entry" . }}
+    <tr id="auction-entry-{{ .Room.Id }}">
+        <td align="center">{{ .Room.Id }}</td>
+        <td align="center">{{ .Room.CurrentBidder.Name }}</td>
+        <td align="center">{{ .Room.CurrentBid }}</td>
+        <td align="center" id="auction-countdown-{{ .Room.Id }}">Updating...</td>
+        <script>startCountdown({{ .ExpiresIn }}, "auction-countdown-{{ .Room.Id }}")</script>
+        <td align="center"><a href="/auction?id={{ .Room.Id }}&userName={{ .User.Name }}">Join</a></td>
+    </tr>
+{{ end }}
+
+{{ block "add-auction-form" . }}
+<form ws-send class="w-1/2 m-auto bg-white shadow-md rounded px-8 pt-4 pb-4">
+<!-- <form hx-swap="outerHTML" hx-post="/create_auction"> -->
+    <div class="mb-4">
+        <div class="mb-1">
+            Expires at:
+        </div>
+        <input type="datetime-local" name="ClosesAt" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
     </div>
+    <button type="submit" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow">Create</button>
+</form>
+{{ end }}
+
+{{ block "appendable-auction-entry" . }}
+<!-- need to wrap in tbody tag because otherwise tr will be stripped, see -->
+<!-- https://github.com/bigskysoftware/htmx/issues/1043#issuecomment-1510419850 -->
+<tbody  hx-swap-oob="beforeend:#auction_list_body">
+    <tr id="auction-entry-{{ .Room.Id }}">
+        <td align="center">{{ .Room.Id }}</td>
+        <td align="center">{{ .Room.CurrentBidder.Name }}</td>
+        <td align="center">{{ .Room.CurrentBid }}</td>
+        <td align="center" id="auction-countdown-{{ .Room.Id }}">Updating...</td>
+        <script>startCountdown({{ .ExpiresIn }}, "auction-countdown-{{ .Room.Id }}")</script>
+        <td align="center"><a href="/auction?id={{ .Room.Id }}&userName={{ .User.Name }}">Join</a></td>
+    </tr>
+</tbody>
+{{ end }}
+
+{{ block "expired-auction-entry" . }}
+<!-- need to wrap in tbody tag because otherwise tr will be stripped, see -->
+<!-- https://github.com/bigskysoftware/htmx/issues/1043#issuecomment-1510419850 -->
+<tr hx-swap="outerHTML" id="auction-entry-{{ .Room.Id }}">
+    <td align="center">{{ .Room.Id }}</td>
+    <td align="center">{{ .Room.CurrentBidder.Name }}</td>
+    <td align="center">{{ .Room.CurrentBid }}</td>
+    <td align="center"><span style="color: red">EXPIRED</span></td>
+    <td align="center">Closed</td>
+</tr>
 {{ end }}
