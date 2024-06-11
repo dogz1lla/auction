@@ -1,6 +1,8 @@
 package room
 
-import "log"
+import (
+	"log"
+)
 
 type Message struct {
 	WsClient *Client
@@ -18,9 +20,11 @@ type Hub struct {
 	clients map[*Client]bool
 
 	roomUpdatesHub *RoomUpdatesHub
-	broadcast      chan *Message
-	register       chan *Client
-	unregister     chan *Client
+	// clientUserMap  *users.ClientToUserMap
+
+	broadcast  chan *Message
+	register   chan *Client
+	unregister chan *Client
 }
 
 func NewHub(ruh *RoomUpdatesHub) *Hub {

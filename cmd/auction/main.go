@@ -18,6 +18,7 @@ TODO
   - [x] remove the create_auction endpoint and do that through the ws instead
   - [x] upon going to the /home or /admin page create a websocket connection that updates the table
     when the auction ends (expires);
+  - [ ] need to map client ids into actual usernames; map[string]string, uid -> username
 */
 package main
 
@@ -50,6 +51,7 @@ func main() {
 	e.Renderer = templating.NewTemplate()
 	mockLoginPage := templating.NewLoginPage()
 	var allUsers users.Users
+
 	// TODO make an actual templated page and not just auction room struct
 
 	roomUpdatesHub := room.NewRoomUpdatesHub()
@@ -63,19 +65,35 @@ func main() {
 
 	// next two (three) endpoints work in tandem
 	e.GET("/admin", func(c echo.Context) error {
-		homePage := room.NewHomePage("admin", roomManager)
+		user, err := allUsers.GetUser("admin")
+		if err != nil {
+			log.Println(fmt.Sprintf("%v", err))
+			return c.NoContent(http.StatusInternalServerError)
+		}
+		homePage := room.NewHomePage(user, roomManager)
 		//return c.Render(http.StatusOK, "admin-page", roomManager)
 		return c.Render(http.StatusOK, "home-page", homePage)
 	})
 
 	e.GET("/home", func(c echo.Context) error {
 		userName := c.QueryParam("userName")
-		homePage := room.NewHomePage(userName, roomManager)
+		user, err := allUsers.GetUser(userName)
+		if err != nil {
+			log.Println(fmt.Sprintf("%v", err))
+			return c.NoContent(http.StatusInternalServerError)
+		}
+		homePage := room.NewHomePage(user, roomManager)
 		return c.Render(http.StatusOK, "home-page", homePage)
 	})
 
 	e.GET("/ws_room_updates", func(c echo.Context) error {
-		room.ServerRoomUpdatesWs(roomUpdatesHub, roomManager, c)
+		userName := c.QueryParam("userName")
+		user, err := allUsers.GetUser(userName)
+		if err != nil {
+			log.Println(fmt.Sprintf("/ws_room_updates: %v", err))
+			return c.NoContent(http.StatusInternalServerError)
+		}
+		room.ServerRoomUpdatesWs(roomUpdatesHub, user, roomManager, c)
 		return nil
 	})
 
@@ -101,12 +119,17 @@ func main() {
 	e.GET("/auction", func(c echo.Context) error {
 		roomId := c.QueryParam("id")
 		auctionRoom, err := roomManager.GetRoomById(roomId)
-		log.Println(auctionRoom)
 		if err != nil {
 			c.Logger().Errorf("Room not found: %s", roomId)
 			return nil
 		}
-		auctionPage := room.NewAuctionPage(auctionRoom)
+		userName := c.QueryParam("userName")
+		user, err := allUsers.GetUser(userName)
+		if err != nil {
+			log.Println(fmt.Sprintf("%v", err))
+			return c.NoContent(http.StatusInternalServerError)
+		}
+		auctionPage := room.NewAuctionPage(auctionRoom, user)
 		return c.Render(http.StatusOK, "auction-page", auctionPage)
 	})
 
@@ -114,7 +137,12 @@ func main() {
 		userName := c.QueryParam("userName")
 		roomId := c.QueryParam("roomId")
 
-		room.ServerWs(hub, roomManager, c, userName, roomId)
+		user, err := allUsers.GetUser(userName)
+		if err != nil {
+			log.Println(fmt.Sprintf("%v", err))
+			return c.NoContent(http.StatusBadRequest)
+		}
+		room.ServerWs(hub, roomManager, c, user, roomId)
 		return nil
 	})
 

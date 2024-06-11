@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/dogz1lla/auction/internal/users"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -13,6 +14,7 @@ import (
 
 type Client struct {
 	id   string
+	user *users.User
 	hub  *Hub
 	room *AuctionRoom
 	conn *websocket.Conn
@@ -31,7 +33,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func ServerWs(hub *Hub, roomManager *RoomManager, c echo.Context, userName, roomId string) {
+func ServerWs(hub *Hub, roomManager *RoomManager, c echo.Context, user *users.User, roomId string) {
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		log.Println(err)
@@ -47,6 +49,7 @@ func ServerWs(hub *Hub, roomManager *RoomManager, c echo.Context, userName, room
 	id := uuid.New().String()
 	client := &Client{
 		id:   id,
+		user: user,
 		hub:  hub,
 		room: room,
 		conn: conn,

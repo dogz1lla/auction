@@ -14,7 +14,7 @@ import (
 
 type AuctionRoom struct {
 	Id            string
-	CurrentBidder string
+	CurrentBidder *users.User
 	CurrentBid    float64
 	// this will help render the countdown both in user's list and in the auction view
 	ClosesAt time.Time
@@ -24,7 +24,7 @@ func NewAuctionRoom() *AuctionRoom {
 	id := uuid.New()
 	return &AuctionRoom{
 		Id:            id.String(),
-		CurrentBidder: "none",
+		CurrentBidder: users.NewUser("none"),
 		CurrentBid:    0.0,
 		// ClosesAt:      0,
 	}
@@ -39,7 +39,7 @@ func (ar *AuctionRoom) ProcessBid(userName string, msg *Message) error {
 	bid := msg.Bid
 	if bid > ar.CurrentBid {
 		ar.CurrentBid = bid
-		ar.CurrentBidder = msg.WsClient.id
+		ar.CurrentBidder = msg.WsClient.user
 		log.Printf("New bid! %s bid %f\n", msg.WsClient.id, bid)
 	} else {
 		log.Printf("Bid rejected! %s bid %f\n", msg.WsClient.id, bid)
@@ -64,22 +64,24 @@ func (ar *AuctionRoom) RenderState() []byte {
 type RoomListEntry struct {
 	// TODO: compare with the AuctionPage, remove redundancy
 	// TODO: in the auction_list_body element need to make sure that the collection is of entries
+	User      *users.User
 	Room      *AuctionRoom
 	ExpiresIn int64
 }
 
-func NewRoomListEntry(room *AuctionRoom) *RoomListEntry {
+func NewRoomListEntry(user *users.User, room *AuctionRoom) *RoomListEntry {
 	return &RoomListEntry{
+		User:      user,
 		Room:      room,
 		ExpiresIn: GetMillisTill(room.ClosesAt),
 	}
 }
 
-func (ar *AuctionRoom) RenderRoomListEntry() []byte {
+func (ar *AuctionRoom) RenderRoomListEntry(user *users.User) []byte {
 	tmpl := templating.NewTemplate()
 
 	var renderedMsg bytes.Buffer
-	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "home-auction-entry", NewRoomListEntry(ar))
+	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "home-auction-entry", NewRoomListEntry(user, ar))
 	if err != nil {
 		log.Fatalf("Template parsing error: %s", err)
 	}
@@ -87,11 +89,11 @@ func (ar *AuctionRoom) RenderRoomListEntry() []byte {
 	return renderedMsg.Bytes()
 }
 
-func (ar *AuctionRoom) RenderNewRoomEntry() []byte {
+func (ar *AuctionRoom) RenderNewRoomEntry(user *users.User) []byte {
 	tmpl := templating.NewTemplate()
 
 	var renderedMsg bytes.Buffer
-	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "appendable-auction-entry", NewRoomListEntry(ar))
+	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "appendable-auction-entry", NewRoomListEntry(user, ar))
 	if err != nil {
 		log.Fatalf("Template parsing error: %s", err)
 	}
@@ -99,11 +101,11 @@ func (ar *AuctionRoom) RenderNewRoomEntry() []byte {
 	return renderedMsg.Bytes()
 }
 
-func (ar *AuctionRoom) RenderExpiredRoomEntry() []byte {
+func (ar *AuctionRoom) RenderExpiredRoomEntry(user *users.User) []byte {
 	tmpl := templating.NewTemplate()
 
 	var renderedMsg bytes.Buffer
-	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "expired-auction-entry", NewRoomListEntry(ar))
+	err := tmpl.Templates.ExecuteTemplate(&renderedMsg, "expired-auction-entry", NewRoomListEntry(user, ar))
 	if err != nil {
 		log.Fatalf("Template parsing error: %s", err)
 	}
@@ -169,9 +171,9 @@ type AuctionPage struct {
 	Expiration int64
 }
 
-func NewAuctionPage(ar *AuctionRoom) *AuctionPage {
+func NewAuctionPage(ar *AuctionRoom, user *users.User) *AuctionPage {
 	return &AuctionPage{
-		User:       users.NewUser("MOCK USER"),
+		User:       user,
 		Room:       ar,
 		Expiration: GetMillisTill(ar.ClosesAt),
 	}
@@ -184,13 +186,12 @@ type HomePage struct {
 	RoomEntries []*RoomListEntry
 }
 
-func NewHomePage(userName string, roomManager *RoomManager) HomePage {
+func NewHomePage(user *users.User, roomManager *RoomManager) HomePage {
 	//return HomePage{IsAdmin: isAdmin, RoomManager: roomManager}
 	roomEntries := make([]*RoomListEntry, 0)
 	for _, room := range roomManager.Rooms {
-		roomEntries = append(roomEntries, NewRoomListEntry(room))
+		roomEntries = append(roomEntries, NewRoomListEntry(user, room))
 	}
 	// TODO: add a check that the user exists in the db
-	user := users.NewUser(userName)
 	return HomePage{User: user, RoomEntries: roomEntries}
 }

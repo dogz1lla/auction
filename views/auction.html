@@ -92,7 +92,7 @@
 {{ block "auction-state" . }}
     <div id="auction-state">
         <p class="pb-2 pt-2">
-        Current highest bidder: {{ .CurrentBidder }}, current bid: <span style="color: red">{{ .CurrentBid }}</span>
+        Current highest bidder: {{ .CurrentBidder.Name }}, current bid: <span style="color: red">{{ .CurrentBid }}</span>
         </p>
     </div>
 {{ end }}
