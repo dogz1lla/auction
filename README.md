@@ -5,6 +5,10 @@ This app allows emulating an auction functionality. An auction is an example of 
 supports more than one user participating in the same activity at the same time. All the participants
 are updated about the other users' activity (in this case -- new highest bid placed) instantly.
 
+The code is written (mostly) with the help of the following two video tutorials:
+1. [Primeagean's go+htmx workshop](https://youtu.be/x7v6SNIgJpE?si=En40pZ0oo6sggRUr)
+2. [Tiago's tutorial to building a chat app](https://www.youtube.com/watch?v=NPq3d2HkxWU)
+
 ## Functionality
 - admin capabilities (creating new auctions with set expiration);
 - every user is able to see a list of all currently running auctions;
