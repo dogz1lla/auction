@@ -11,6 +11,15 @@ are updated about the other users' activity (in this case -- new highest bid pla
 - every user can join a particular auction, observe its state (time till expiration, current highest
 bid), place new bids (invalid bids are rejected);
 
+## Usage
+1. clone the repo to your local directory with `git clone git@github.com:dogz1lla/auction.git` [^1]
+2. `cd` into the newly cloned directory and run `go run cmd/auction/main.go` [^2]
+3. in your browser navigate to `localhost:3000/login` and enter `admin` to have admin privilegies or
+any other username for ordinary user privilegies
+
+[^1]: make sure you have git through ssh access configured
+[^2]: make sure you have `go` installed and updated
+
 ## Implementation details
 - the server is written in `go`;
 - client interactivity is achieved through `htmx` + websockets;
